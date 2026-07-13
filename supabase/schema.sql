@@ -78,6 +78,12 @@ create table if not exists behavior_reminders (
   active boolean default true
 );
 
+create table if not exists trusted_devices (
+  device_id text primary key,
+  device_name text,
+  paired_at timestamptz default now()
+);
+
 alter table check_templates enable row level security;
 alter table check_logs enable row level security;
 alter table daily_state enable row level security;
@@ -87,16 +93,21 @@ alter table resources enable row level security;
 alter table scratchpad enable row level security;
 alter table archive enable row level security;
 alter table behavior_reminders enable row level security;
+alter table trusted_devices enable row level security;
 
-create policy "owner_only" on check_templates for all using (auth.uid() is not null) with check (auth.uid() is not null);
-create policy "owner_only" on check_logs for all using (auth.uid() is not null) with check (auth.uid() is not null);
-create policy "owner_only" on daily_state for all using (auth.uid() is not null) with check (auth.uid() is not null);
-create policy "owner_only" on tasks for all using (auth.uid() is not null) with check (auth.uid() is not null);
-create policy "owner_only" on notes for all using (auth.uid() is not null) with check (auth.uid() is not null);
-create policy "owner_only" on resources for all using (auth.uid() is not null) with check (auth.uid() is not null);
-create policy "owner_only" on scratchpad for all using (auth.uid() is not null) with check (auth.uid() is not null);
-create policy "owner_only" on archive for all using (auth.uid() is not null) with check (auth.uid() is not null);
-create policy "owner_only" on behavior_reminders for all using (auth.uid() is not null) with check (auth.uid() is not null);
+-- ponytail: solo uso personale, gate dispositivi nell'app (max 2 in trusted_devices)
+create policy "app_access" on check_templates for all using (true) with check (true);
+create policy "app_access" on check_logs for all using (true) with check (true);
+create policy "app_access" on daily_state for all using (true) with check (true);
+create policy "app_access" on tasks for all using (true) with check (true);
+create policy "app_access" on notes for all using (true) with check (true);
+create policy "app_access" on resources for all using (true) with check (true);
+create policy "app_access" on scratchpad for all using (true) with check (true);
+create policy "app_access" on archive for all using (true) with check (true);
+create policy "app_access" on behavior_reminders for all using (true) with check (true);
+create policy "devices_read" on trusted_devices for select using (true);
+create policy "devices_insert" on trusted_devices for insert with check ((select count(*) from trusted_devices) < 2);
+create policy "devices_delete" on trusted_devices for delete using (true);
 
 -- seed templates (run once on fresh DB)
 insert into check_templates (title, category, frequency_type, frequency_value, preferred_rule, sort_order)
