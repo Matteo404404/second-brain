@@ -24,14 +24,17 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - name: Write production env
+        run: |
+          {
+            echo "VITE_PUBLIC_SUPABASE_URL=${{ secrets.VITE_PUBLIC_SUPABASE_URL }}"
+            echo "VITE_PUBLIC_SUPABASE_PUBLISHABLE_KEY=${{ secrets.VITE_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}"
+            echo "VITE_ALLOWED_EMAIL=${{ secrets.VITE_ALLOWED_EMAIL }}"
+          } > .env.production
       - run: npm run build
-        env:
-          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
-          VITE_PUBLIC_SUPABASE_URL: ${{ secrets.VITE_PUBLIC_SUPABASE_URL }}
-          VITE_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}
-          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
-          VITE_ALLOWED_EMAIL: ${{ secrets.VITE_ALLOWED_EMAIL }}
+      - name: Verify Supabase env in bundle
+        run: |
+          grep -q "supabase.co" dist/assets/*.js || (echo "Supabase URL missing from build" && exit 1)
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
