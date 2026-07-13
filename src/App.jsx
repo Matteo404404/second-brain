@@ -1,11 +1,10 @@
 import { clearDeviceId } from './lib/deviceAuth.js'
 import DeviceGate from './components/DeviceGate.jsx'
 import TodayChecks from './components/TodayChecks.jsx'
-import TopTasks from './components/TopTasks.jsx'
-import NextTasks from './components/NextTasks.jsx'
+import TasksSection from './components/TasksSection.jsx'
 import ScheduleView from './components/ScheduleView.jsx'
 import QuickCapture from './components/QuickCapture.jsx'
-import NotesPanel from './components/NotesPanel.jsx'
+import KnowledgeBase from './components/KnowledgeBase.jsx'
 import RemindersPanel from './components/RemindersPanel.jsx'
 import ArchivePanel from './components/ArchivePanel.jsx'
 
@@ -27,11 +26,10 @@ export default function App() {
 
         <main className="stack">
           <TodayChecks />
-          <TopTasks />
-          <NextTasks />
+          <TasksSection />
           <ScheduleView />
           <QuickCapture />
-          <NotesPanel />
+          <KnowledgeBase />
           <RemindersPanel />
           <ArchivePanel />
         </main>

@@ -1,40 +1,45 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient.js'
+import { onRefresh } from '../lib/events.js'
 
 export default function ArchivePanel() {
   const [open, setOpen] = useState(false)
   const [items, setItems] = useState([])
 
-  useEffect(() => {
-    if (!open || !supabase) return
-    supabase
+  const load = useCallback(async () => {
+    if (!supabase) return
+    const { data, error } = await supabase
       .from('archive')
       .select('*')
       .order('archived_at', { ascending: false })
       .limit(50)
-      .then(({ data, error }) => {
-        if (error) console.error('ArchivePanel:', error.message)
-        else setItems(data ?? [])
-      })
-  }, [open])
+    if (error) console.error('ArchivePanel:', error.message)
+    else setItems(data ?? [])
+  }, [])
+
+  useEffect(() => {
+    if (!open) return
+    load()
+    return onRefresh(load, 'archive')
+  }, [open, load])
 
   return (
     <section className="section archive-section">
       <button type="button" className="collapse-head" onClick={() => setOpen(!open)}>
         <h2>Archive</h2>
-        <span className="muted">{open ? '▲' : '▼'}</span>
+        <span className="badge muted-badge">{open ? items.length : '…'}</span>
       </button>
       {open && (
-        <ul className="item-list">
+        <div className="archive-list">
+          {items.length === 0 && <p className="empty-hint">Niente in archivio.</p>}
           {items.map((item) => (
-            <li key={item.id}>
+            <div key={item.id} className="archive-card">
               <strong>{item.title}</strong>
-              <span className="muted"> · {item.original_type}</span>
-              {item.content && <p className="muted">{item.content}</p>}
-            </li>
+              <span className="tag">{item.original_type}</span>
+              {item.content && <p className="kb-preview">{item.content}</p>}
+            </div>
           ))}
-          {items.length === 0 && <p className="muted">Niente in archivio.</p>}
-        </ul>
+        </div>
       )}
     </section>
   )
