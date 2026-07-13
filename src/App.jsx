@@ -1,17 +1,12 @@
 import { clearDeviceId } from './lib/deviceAuth.js'
 import DeviceGate from './components/DeviceGate.jsx'
-import TodayChecks from './components/TodayChecks.jsx'
-import TasksSection from './components/TasksSection.jsx'
-import ScheduleView from './components/ScheduleView.jsx'
-import QuickCapture from './components/QuickCapture.jsx'
-import KnowledgeBase from './components/KnowledgeBase.jsx'
+import TodayView from './components/TodayView.jsx'
+import TasksPanel from './components/TasksPanel.jsx'
+import CalendarView from './components/CalendarView.jsx'
+import InboxCapture from './components/InboxCapture.jsx'
+import Library from './components/Library.jsx'
 import RemindersPanel from './components/RemindersPanel.jsx'
 import ArchivePanel from './components/ArchivePanel.jsx'
-
-function lockDevice() {
-  clearDeviceId()
-  window.location.reload()
-}
 
 export default function App() {
   return (
@@ -19,17 +14,25 @@ export default function App() {
       <div className="app">
         <header className="app-header">
           <h1 className="dot-title">Second Brain</h1>
-          <button type="button" className="btn-ghost" onClick={lockDevice}>
-            Blocca
+          <button
+            type="button"
+            className="btn-ghost"
+            title="Dimentica questo dispositivo (serve il codice pairing di nuovo)"
+            onClick={() => {
+              clearDeviceId()
+              window.location.reload()
+            }}
+          >
+            Rimuovi device
           </button>
         </header>
 
         <main className="stack">
-          <TodayChecks />
-          <TasksSection />
-          <ScheduleView />
-          <QuickCapture />
-          <KnowledgeBase />
+          <TodayView />
+          <TasksPanel />
+          <CalendarView />
+          <InboxCapture />
+          <Library />
           <RemindersPanel />
           <ArchivePanel />
         </main>

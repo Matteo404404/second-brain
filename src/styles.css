@@ -896,6 +896,116 @@ button:disabled {
   margin-top: 1.5rem;
 }
 
+.today-hero {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.today-metrics {
+  display: flex;
+  gap: 1rem;
+}
+
+.metric {
+  text-align: center;
+}
+
+.metric-label {
+  display: block;
+  font-size: 0.65rem;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+.progress-bar {
+  height: 4px;
+  background: var(--border);
+  border-radius: 999px;
+  overflow: hidden;
+  margin: 0.5rem 0 0.25rem;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.3s ease;
+}
+
+.tiny {
+  font-size: 0.75rem;
+  margin: 0 0 0.75rem;
+}
+
+.handwriting-flag {
+  margin-bottom: 1rem;
+  padding: 0.65rem;
+  background: var(--bg);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+}
+
+.freq-badge {
+  margin-left: auto;
+  font-size: 0.6rem;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  padding: 0.05rem 0.3rem;
+  border-radius: 3px;
+}
+
+.habit-group h3 {
+  margin-top: 0.85rem;
+}
+
+.sub-head {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  margin: 0.75rem 0 0.35rem;
+}
+
+.task-meta {
+  font-size: 0.7rem;
+  color: var(--muted);
+}
+
+.heat {
+  font-size: 0.55rem;
+  color: var(--accent);
+}
+
+.heat-0 { opacity: 0.35; }
+.heat-1 { opacity: 0.55; }
+.heat-2 { opacity: 0.75; }
+.heat-3 { opacity: 1; }
+
+.day-detail {
+  border-top: 1px solid var(--border);
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+}
+
+.detail-list li {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.45rem 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.85rem;
+}
+
+.detail-list li.missed span:first-child {
+  color: var(--muted);
+}
+
+.subtasks-block {
+  border-top: 1px solid var(--border);
+  padding-top: 0.5rem;
+}
+
 @media (min-width: 521px) {
   .app {
     max-width: 560px;

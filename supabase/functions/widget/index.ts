@@ -30,7 +30,7 @@ Deno.serve(async (req) => {
   const today = new Date().toISOString().slice(0, 10)
 
   const { data: logs } = await supabase
-    .from('check_logs')
+    .from('habit_logs')
     .select('done')
     .eq('log_date', today)
 
