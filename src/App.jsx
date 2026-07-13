@@ -28,9 +28,9 @@ export default function App() {
         </header>
 
         <main className="stack">
+          <CalendarView />
           <TodayView />
           <TasksPanel />
-          <CalendarView />
           <InboxCapture />
           <Library />
           <RemindersPanel />

@@ -1006,6 +1006,26 @@ button:disabled {
   padding-top: 0.5rem;
 }
 
+.loss-banner {
+  background: var(--accent-soft);
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  padding: 0.45rem 0.65rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+  margin-bottom: 0.5rem;
+}
+
+.loss-day {
+  border-color: var(--accent) !important;
+}
+
+.loss-dot {
+  color: var(--accent);
+  font-size: 0.65rem;
+  font-weight: bold;
+}
+
 @media (min-width: 521px) {
   .app {
     max-width: 560px;

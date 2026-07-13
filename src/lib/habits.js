@@ -1,4 +1,4 @@
-// which habits apply on a given day — weekly/monthly/EOD counted separately
+// habit due logic — counts use logs only up to the viewed day
 
 function parseDate(iso) {
   const [y, m, d] = iso.split('-').map(Number)
@@ -6,10 +6,13 @@ function parseDate(iso) {
 }
 
 function dateOnly(d) {
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  return `${y}-${m}-${day}`
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+function addDays(iso, n) {
+  const d = parseDate(iso)
+  d.setDate(d.getDate() + n)
+  return dateOnly(d)
 }
 
 function daysBetween(a, b) {
@@ -21,6 +24,10 @@ function weekStartMonday(iso) {
   const dow = d.getDay() || 7
   d.setDate(d.getDate() - (dow - 1))
   return dateOnly(d)
+}
+
+function logsAsOf(logs, dateIso) {
+  return logs.filter((l) => l.log_date <= dateIso)
 }
 
 function logsForTemplate(id, logs) {
@@ -57,21 +64,42 @@ function findTemplate(templates, title) {
 }
 
 export function isTrainingScheduled(dateIso, templates, logs) {
+  const L = logsAsOf(logs, dateIso)
   const training = findTemplate(templates, 'Training')
   if (!training) return false
-  if (doneOnDate(training.id, logs, dateIso)) return false
+  if (doneOnDate(training.id, L, dateIso)) return false
 
-  const weekDone = doneCountWeek(training.id, logs, dateIso)
+  // giorno dopo allenamento = riposo, niente training
+  if (doneOnDate(training.id, L, addDays(dateIso, -1))) return false
+
+  const weekDone = doneCountWeek(training.id, L, dateIso)
   const quota = training.frequency_value ?? 3
   if (weekDone >= quota) return false
 
   const d = parseDate(dateIso)
-  const evenDay = d.getDate() % 2 === 0
-  const dow = d.getDay()
-
-  if (evenDay) return true
-  if (dow >= 4 && weekDone < quota) return true
+  if (d.getDate() % 2 === 0) return true
+  if (d.getDay() >= 4 && weekDone < quota) return true
   return false
+}
+
+// film / meditare: giorno dopo train, mai lo stesso giorno del train
+export function isRestActivityDue(dateIso, templates, logs) {
+  const L = logsAsOf(logs, dateIso)
+  const training = findTemplate(templates, 'Training')
+  if (training && doneOnDate(training.id, L, dateIso)) return false
+  if (training && doneOnDate(training.id, L, addDays(dateIso, -1))) return true
+  return !isTrainingScheduled(dateIso, templates, logs)
+}
+
+export function trainingLossOn(dateIso, templates, logs) {
+  const L = logsAsOf(logs, dateIso)
+  const training = findTemplate(templates, 'Training')
+  if (!training) return false
+  const d1 = addDays(dateIso, -1)
+  const d2 = addDays(dateIso, -2)
+  const miss1 = isTrainingScheduled(d1, templates, L) && !doneOnDate(training.id, L, d1)
+  const miss2 = isTrainingScheduled(d2, templates, L) && !doneOnDate(training.id, L, d2)
+  return miss1 && miss2
 }
 
 function everyOtherDayDue(template, dateIso, logs) {
@@ -83,7 +111,6 @@ function everyOtherDayDue(template, dateIso, logs) {
 function timesPerWeekDue(template, dateIso, logs) {
   const quota = template.frequency_value ?? 1
   if (doneCountWeek(template.id, logs, dateIso) >= quota) return false
-
   const d = parseDate(dateIso)
   if (template.preferred_rule === 'thursday_preferred') {
     return d.getDay() === 4 || d.getDay() >= 5
@@ -102,14 +129,15 @@ function conditionalDue(template, dateIso, ctx) {
     return !dailyState?.handwriting_done
   }
   if (template.preferred_rule === 'rest_day') {
-    return !isTrainingScheduled(dateIso, templates, logs)
+    return isRestActivityDue(dateIso, templates, logs)
   }
   return false
 }
 
 export function habitDueOn(template, dateIso, ctx) {
   if (!template.active) return false
-  const { logs } = ctx
+  const logs = logsAsOf(ctx.logs, dateIso)
+  const scoped = { ...ctx, logs }
 
   switch (template.frequency_type) {
     case 'daily':
@@ -122,13 +150,13 @@ export function habitDueOn(template, dateIso, ctx) {
       return everyOtherDayDue(template, dateIso, logs)
     case 'times_per_week':
       if (template.title.startsWith('Training')) {
-        return isTrainingScheduled(dateIso, ctx.templates, logs)
+        return isTrainingScheduled(dateIso, scoped.templates, logs)
       }
       return timesPerWeekDue(template, dateIso, logs)
     case 'times_per_month':
       return timesPerMonthDue(template, dateIso, logs)
     case 'conditional':
-      return conditionalDue(template, dateIso, ctx)
+      return conditionalDue(template, dateIso, scoped)
     default:
       return false
   }
@@ -160,13 +188,12 @@ export function dayStats(logs) {
 
 export function computeStreak(allLogs, todayIso) {
   let streak = 0
-  let cursor = parseDate(todayIso)
+  const cursor = parseDate(todayIso)
   while (true) {
     const iso = dateOnly(cursor)
     const dayLogs = allLogs.filter((l) => l.log_date === iso)
     if (dayLogs.length === 0) break
-    const pct = dayStats(dayLogs).percent
-    if (pct < 80) break
+    if (dayStats(dayLogs).percent < 80) break
     streak++
     cursor.setDate(cursor.getDate() - 1)
   }
@@ -175,8 +202,7 @@ export function computeStreak(allLogs, todayIso) {
 
 export async function monthHistory(supabase, year, month) {
   const start = `${year}-${String(month + 1).padStart(2, '0')}-01`
-  const endDate = new Date(year, month + 1, 0)
-  const end = dateOnly(endDate)
+  const end = dateOnly(new Date(year, month + 1, 0))
   const { data, error } = await supabase
     .from('habit_logs')
     .select('log_date, done')
@@ -190,4 +216,12 @@ export async function monthHistory(supabase, year, month) {
     if (row.done) byDay[row.log_date].done++
   }
   return byDay
+}
+
+// ponytail: self-check
+if (typeof console !== 'undefined' && console.assert) {
+  const templates = [{ id: 't1', title: 'Training', active: true, frequency_type: 'times_per_week', frequency_value: 3, sort_order: 1, section: 'Body' }]
+  const logs = [{ template_id: 't1', log_date: '2026-07-14', done: true }]
+  console.assert(!isRestActivityDue('2026-07-14', templates, logs), 'no film on train day')
+  console.assert(isRestActivityDue('2026-07-15', templates, logs), 'film day after train')
 }

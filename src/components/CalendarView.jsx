@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabaseClient.js'
-import { listTasks, todayISO } from '../lib/db.js'
+import { fetchHabitTemplates, listTasks, todayISO } from '../lib/db.js'
 import { downloadIcs } from '../lib/ics.js'
-import { monthHistory } from '../lib/habits.js'
+import { monthHistory, trainingLossOn } from '../lib/habits.js'
+import { getSelectedDay, onSelectedDay, setSelectedDay } from '../lib/selectedDay.js'
 import { onRefresh } from '../lib/events.js'
 
 const WEEKDAYS = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom']
@@ -24,10 +25,11 @@ function isoLocal(d) {
 export default function CalendarView() {
   const [tab, setTab] = useState('history')
   const [cursor, setCursor] = useState(() => new Date())
-  const [selected, setSelected] = useState(todayISO())
+  const [selected, setSelected] = useState(getSelectedDay())
   const [history, setHistory] = useState({})
   const [tasks, setTasks] = useState([])
-  const [dayLogs, setDayLogs] = useState([])
+  const [templates, setTemplates] = useState([])
+  const [allLogs, setAllLogs] = useState([])
 
   const year = cursor.getFullYear()
   const month = cursor.getMonth()
@@ -37,8 +39,10 @@ export default function CalendarView() {
     try {
       const hist = await monthHistory(supabase, year, month)
       setHistory(hist)
-      const all = await listTasks({ done: false })
-      setTasks(all)
+      setTasks(await listTasks({ done: false }))
+      setTemplates(await fetchHabitTemplates())
+      const { data } = await supabase.from('habit_logs').select('*')
+      setAllLogs(data ?? [])
     } catch (err) {
       console.error('CalendarView:', err.message)
     }
@@ -49,34 +53,26 @@ export default function CalendarView() {
     return onRefresh(load, 'calendar')
   }, [load])
 
-  useEffect(() => {
-    if (!supabase || tab !== 'history') return
-    supabase
-      .from('habit_logs')
-      .select('*, habit_templates(title, section)')
-      .eq('log_date', selected)
-      .then(({ data }) => setDayLogs(data ?? []))
-  }, [selected, tab])
+  useEffect(() => onSelectedDay(setSelected), [])
+
+  function pickDay(iso) {
+    setSelected(iso)
+    setSelectedDay(iso)
+  }
 
   const label = cursor.toLocaleDateString('it-IT', { month: 'long', year: 'numeric' })
-  const futureTasks = tasks.filter((t) => t.due_date === selected)
 
   return (
     <section className="section">
       <div className="section-head">
         <h2>Calendario</h2>
-        <button type="button" className="btn-ghost" onClick={() => downloadIcs(tasks)}>
-          ICS
-        </button>
+        <button type="button" className="btn-ghost" onClick={() => downloadIcs(tasks)}>ICS</button>
       </div>
+      <p className="section-desc">Clicca un giorno → i check sopra cambiano.</p>
 
       <div className="tabs">
-        <button type="button" className={tab === 'history' ? 'active' : ''} onClick={() => setTab('history')}>
-          Storico routine
-        </button>
-        <button type="button" className={tab === 'agenda' ? 'active' : ''} onClick={() => setTab('agenda')}>
-          Agenda task
-        </button>
+        <button type="button" className={tab === 'history' ? 'active' : ''} onClick={() => setTab('history')}>Storico</button>
+        <button type="button" className={tab === 'agenda' ? 'active' : ''} onClick={() => setTab('agenda')}>Task</button>
       </div>
 
       <div className="cal-nav">
@@ -85,7 +81,15 @@ export default function CalendarView() {
         <button type="button" className="btn-ghost" onClick={() => setCursor(new Date(year, month + 1, 1))}>›</button>
       </div>
 
-      <button type="button" className="btn-ghost btn-today" onClick={() => { const n = new Date(); setCursor(n); setSelected(todayISO(n)) }}>
+      <button
+        type="button"
+        className="btn-ghost btn-today"
+        onClick={() => {
+          const n = new Date()
+          setCursor(n)
+          pickDay(todayISO(n))
+        }}
+      >
         Oggi
       </button>
 
@@ -97,51 +101,21 @@ export default function CalendarView() {
           const h = history[iso]
           const pct = h?.total ? Math.round((h.done / h.total) * 100) : null
           const taskCount = tasks.filter((t) => t.due_date === iso).length
+          const loss = trainingLossOn(iso, templates, allLogs)
           return (
             <button
               key={iso}
               type="button"
-              className={`cal-cell ${iso === todayISO() ? 'today' : ''} ${iso === selected ? 'selected' : ''}`}
-              onClick={() => setSelected(iso)}
+              className={`cal-cell ${iso === todayISO() ? 'today' : ''} ${iso === selected ? 'selected' : ''} ${loss ? 'loss-day' : ''}`}
+              onClick={() => pickDay(iso)}
             >
               <span className="cal-num">{day.getDate()}</span>
-              {tab === 'history' && pct !== null && (
-                <span className={`heat heat-${Math.floor(pct / 25)}`}>{pct}%</span>
-              )}
+              {tab === 'history' && pct !== null && <span className={`heat heat-${Math.floor(pct / 25)}`}>{pct}%</span>}
               {tab === 'agenda' && taskCount > 0 && <span className="cal-dots">{'•'.repeat(Math.min(taskCount, 3))}</span>}
+              {loss && <span className="loss-dot">!</span>}
             </button>
           )
         })}
-      </div>
-
-      <div className="day-detail">
-        <h3>{new Date(selected + 'T12:00:00').toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' })}</h3>
-        {tab === 'history' && (
-          <>
-            {!dayLogs.length && <p className="empty-hint">Nessun dato routine per questo giorno.</p>}
-            <ul className="detail-list">
-              {dayLogs.map((l) => (
-                <li key={l.id} className={l.done ? 'done' : 'missed'}>
-                  <span>{l.habit_templates?.title}</span>
-                  <span className="tag">{l.done ? 'fatto' : 'mancato'}</span>
-                </li>
-              ))}
-            </ul>
-          </>
-        )}
-        {tab === 'agenda' && (
-          <>
-            {!futureTasks.length && <p className="empty-hint">Nessun task in scadenza.</p>}
-            <ul className="detail-list">
-              {futureTasks.map((t) => (
-                <li key={t.id}>
-                  <span>{t.title}</span>
-                  <span className="tag">{t.priority}{t.due_time ? ` ${t.due_time.slice(0, 5)}` : ''}</span>
-                </li>
-              ))}
-            </ul>
-          </>
-        )}
       </div>
     </section>
   )

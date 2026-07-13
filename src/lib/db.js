@@ -202,12 +202,14 @@ export function extractUrl(text) {
   return m ? m[0].replace(/[.,)]+$/, '') : ''
 }
 
-// sync habits for day
+// sync habits for a specific day; return only habits due that day
 export async function syncDayHabits(dateIso = todayISO()) {
   const templates = await fetchHabitTemplates()
   const allLogs = await fetchAllHabitLogs()
   const dailyState = await fetchDailyState(dateIso)
   const due = getDueHabits(templates, dateIso, { logs: allLogs, dailyState, templates })
+  const dueIds = new Set(due.map((t) => t.id))
+
   const existing = await fetchDayHabitLogs(dateIso)
   const have = new Set(existing.map((l) => l.template_id))
   const missing = due.filter((t) => !have.has(t.id)).map((t) => ({ template_id: t.id, log_date: dateIso, done: false }))
@@ -215,5 +217,7 @@ export async function syncDayHabits(dateIso = todayISO()) {
     const { error } = await db().from('habit_logs').insert(missing)
     if (error) throw error
   }
-  return fetchDayHabitLogs(dateIso)
+
+  const fresh = await fetchDayHabitLogs(dateIso)
+  return fresh.filter((l) => dueIds.has(l.template_id))
 }
