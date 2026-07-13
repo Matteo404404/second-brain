@@ -52,6 +52,25 @@ export async function toggleHabitLog(id, done) {
   return data
 }
 
+export async function markHabitOnDay(templateId, dateIso, done = true) {
+  const { data: existing } = await db()
+    .from('habit_logs')
+    .select('id')
+    .eq('template_id', templateId)
+    .eq('log_date', dateIso)
+    .maybeSingle()
+  if (existing) {
+    return toggleHabitLog(existing.id, done)
+  }
+  const { data, error } = await db()
+    .from('habit_logs')
+    .insert({ template_id: templateId, log_date: dateIso, done })
+    .select('*, habit_templates(*)')
+    .single()
+  if (error) throw error
+  return data
+}
+
 // tasks
 export async function listTasks({ done = false } = {}) {
   const { data, error } = await db().from('tasks').select('*').eq('done', done).order('due_date', { nullsFirst: false })

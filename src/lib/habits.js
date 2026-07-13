@@ -180,10 +180,38 @@ export function groupBySection(habits) {
   return SECTION_ORDER.filter((s) => map[s]?.length).map((s) => ({ section: s, items: map[s] }))
 }
 
-export function dayStats(logs) {
-  const total = logs.length
+export function getBacklog(templates, dateIso, logs) {
+  const L = logsAsOf(logs, dateIso)
+  const items = []
+  for (const t of templates) {
+    if (!t.active) continue
+    if (t.frequency_type === 'times_per_week') {
+      const done = doneCountWeek(t.id, L, dateIso)
+      const quota = t.frequency_value ?? 1
+      if (done < quota) {
+        items.push({ template: t, done, quota, period: 'sett' })
+      }
+    }
+    if (t.frequency_type === 'times_per_month') {
+      const done = doneCountMonth(t.id, L, dateIso)
+      const quota = t.frequency_value ?? 1
+      if (done < quota) {
+        items.push({ template: t, done, quota, period: 'mese' })
+      }
+    }
+  }
+  return items
+}
+
+export function dayStats(logs, { lossMisses = 0 } = {}) {
   const done = logs.filter((l) => l.done).length
-  return { total, done, percent: total ? Math.round((done / total) * 100) : 0 }
+  const total = logs.length + lossMisses
+  return {
+    total,
+    done,
+    lossMisses,
+    percent: total ? Math.round((done / total) * 100) : 0,
+  }
 }
 
 export function computeStreak(allLogs, todayIso) {
