@@ -1,5 +1,12 @@
 -- v5: sonno + libreria libri completa + task uni
--- Esegui dopo migrate_v4.sql (o standalone se DB già a v4)
+-- prereqs (idempotente, anche se v4 non è stato eseguito)
+
+alter table habit_templates add column if not exists allow_multi boolean default false;
+alter table notes add column if not exists kind text default 'text';
+alter table notes add column if not exists topic text;
+alter table resources add column if not exists topic text;
+alter table habit_logs drop constraint if exists habit_logs_template_id_log_date_key;
+alter table habit_logs drop constraint if exists check_logs_template_id_log_date_key;
 
 insert into habit_templates (title, section, frequency_type, frequency_value, preferred_rule, allow_multi, sort_order, active)
 select 'Track sonno', 'Evening', 'daily', null, null, false, 255, true
