@@ -22,9 +22,28 @@ const NOTE_KINDS = [
 
 const RES_KINDS = [
   { id: 'link', label: 'Link' },
-  { id: 'list', label: 'Lista libri/media' },
-  { id: 'app', label: 'App da provare' },
+  { id: 'libro', label: 'Libro' },
+  { id: 'list', label: 'Lista' },
+  { id: 'app', label: 'App' },
 ]
+
+const TOPICS = [
+  'all', 'idee', 'salute', 'casa', 'streaming', 'dev', 'lavoro', 'uni', 'uni-corsi',
+  'semiotica', 'media', 'decisioni', 'bioetica', 'fisica', 'quantum', 'matematica',
+  'tecnologia', 'istituzioni', 'economia', 'reti', 'microeconomia', 'game-theory',
+  'ottimizzazione', 'informatica', 'algoritmi', 'storia-economia', 'ML', 'probabilita',
+  'econometria', 'biologia', 'neuroscienze', 'filosofia-scienza', 'fumetti', 'generale',
+]
+
+function groupByTopic(items) {
+  const map = {}
+  for (const item of items) {
+    const t = item.topic || 'generale'
+    if (!map[t]) map[t] = []
+    map[t].push(item)
+  }
+  return Object.keys(map).sort().map((topic) => ({ topic, items: map[topic] }))
+}
 
 export default function Library() {
   const [tab, setTab] = useState('notes')
@@ -101,6 +120,7 @@ export default function Library() {
   }
 
   const items = tab === 'notes' ? notes : resources
+  const grouped = topic === 'all' ? groupByTopic(items) : [{ topic: topic, items }]
 
   return (
     <section className="section">
@@ -124,23 +144,28 @@ export default function Library() {
           <button key={t} type="button" className={tag === t ? 'active' : ''} onClick={() => setTag(t)}>{t}</button>
         ))}
       </div>
-      <div className="tag-filter">
-        {['all', 'idee', 'libri', 'uni', 'lavoro', 'streaming', 'salute', 'generale'].map((t) => (
+      <div className="tag-filter topic-scroll">
+        {TOPICS.map((t) => (
           <button key={t} type="button" className={topic === t ? 'active' : ''} onClick={() => setTopic(t)}>{t}</button>
         ))}
       </div>
 
-      <div className="kb-list">
-        {items.map((item) => (
-          <button key={item.id} type="button" className="kb-card" onClick={() => openItem(item, tab === 'notes' ? 'note' : 'resource')}>
-            <div className="kb-card-top">
-              <strong>{item.title}</strong>
-              <span className="tag">{item.topic || item.tag}</span>
-            </div>
-            <p className="kb-preview">{item.content || item.url || '—'}</p>
-          </button>
-        ))}
-      </div>
+      {grouped.map(({ topic: grp, items: grpItems }) => (
+        <div key={grp} className="topic-group">
+          {topic === 'all' && grpItems.length > 0 && <h3 className="topic-head">{grp}</h3>}
+          <div className="kb-list">
+            {grpItems.map((item) => (
+              <button key={item.id} type="button" className="kb-card" onClick={() => openItem(item, tab === 'notes' ? 'note' : 'resource')}>
+                <div className="kb-card-top">
+                  <strong>{item.title}</strong>
+                  <span className="tag">{item.kind || 'text'}</span>
+                </div>
+                <p className="kb-preview">{item.content || item.url || '—'}</p>
+              </button>
+            ))}
+          </div>
+        </div>
+      ))}
 
       <Sheet open={Boolean(editor)} title={editor?.mode === 'new' ? 'Nuovo' : 'Modifica'} onClose={() => setEditor(null)}>
         {editor && (
