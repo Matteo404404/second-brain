@@ -1030,6 +1030,36 @@ button:disabled {
   font-size: 0.85rem;
 }
 
+.check-row-inner {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex: 1;
+  cursor: pointer;
+}
+
+.habit-admin-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.habit-admin-list li.inactive {
+  opacity: 0.5;
+}
+
+.habit-admin-btn {
+  background: none;
+  border: none;
+  color: var(--text);
+  text-align: left;
+  padding: 0;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
 .loss-banner {
   background: var(--accent-soft);
   border: 1px solid var(--accent);

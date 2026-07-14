@@ -15,6 +15,38 @@ export async function fetchHabitTemplates() {
   return data ?? []
 }
 
+export async function fetchAllHabitTemplates() {
+  const { data, error } = await db().from('habit_templates').select('*').order('sort_order')
+  if (error) throw error
+  return data ?? []
+}
+
+export async function saveHabitTemplate(row) {
+  if (row.id) {
+    const { data, error } = await db().from('habit_templates').update(row).eq('id', row.id).select().single()
+    if (error) throw error
+    return data
+  }
+  const { data, error } = await db().from('habit_templates').insert(row).select().single()
+  if (error) throw error
+  return data
+}
+
+export async function deleteHabitTemplate(id) {
+  const { error } = await db().from('habit_templates').delete().eq('id', id)
+  if (error) throw error
+}
+
+export async function logHabitExtra(templateId, dateIso) {
+  const { data, error } = await db()
+    .from('habit_logs')
+    .insert({ template_id: templateId, log_date: dateIso, done: true })
+    .select('*, habit_templates(*)')
+    .single()
+  if (error) throw error
+  return data
+}
+
 export async function fetchAllHabitLogs() {
   const { data, error } = await db().from('habit_logs').select('*')
   if (error) throw error
@@ -53,15 +85,6 @@ export async function toggleHabitLog(id, done) {
 }
 
 export async function markHabitOnDay(templateId, dateIso, done = true) {
-  const { data: existing } = await db()
-    .from('habit_logs')
-    .select('id')
-    .eq('template_id', templateId)
-    .eq('log_date', dateIso)
-    .maybeSingle()
-  if (existing) {
-    return toggleHabitLog(existing.id, done)
-  }
   const { data, error } = await db()
     .from('habit_logs')
     .insert({ template_id: templateId, log_date: dateIso, done })
@@ -128,9 +151,10 @@ export async function deleteSubtask(id) {
 }
 
 // library
-export async function listNotes({ tag, search } = {}) {
+export async function listNotes({ tag, topic, search } = {}) {
   let q = db().from('notes').select('*').order('created_at', { ascending: false })
   if (tag && tag !== 'all') q = q.eq('tag', tag)
+  if (topic && topic !== 'all') q = q.eq('topic', topic)
   const { data, error } = await q
   if (error) throw error
   let rows = data ?? []
@@ -157,9 +181,10 @@ export async function deleteNote(id) {
   if (error) throw error
 }
 
-export async function listResources({ tag, search } = {}) {
+export async function listResources({ tag, topic, search } = {}) {
   let q = db().from('resources').select('*').order('created_at', { ascending: false })
   if (tag && tag !== 'all') q = q.eq('tag', tag)
+  if (topic && topic !== 'all') q = q.eq('topic', topic)
   const { data, error } = await q
   if (error) throw error
   let rows = data ?? []

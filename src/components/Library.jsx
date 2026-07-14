@@ -29,6 +29,7 @@ const RES_KINDS = [
 export default function Library() {
   const [tab, setTab] = useState('notes')
   const [tag, setTag] = useState('all')
+  const [topic, setTopic] = useState('all')
   const [search, setSearch] = useState('')
   const [notes, setNotes] = useState([])
   const [resources, setResources] = useState([])
@@ -36,10 +37,10 @@ export default function Library() {
   const [toast, setToast] = useState('')
 
   const load = useCallback(async () => {
-    const [n, r] = await Promise.all([listNotes({ tag, search }), listResources({ tag, search })])
+    const [n, r] = await Promise.all([listNotes({ tag, topic, search }), listResources({ tag, topic, search })])
     setNotes(n)
     setResources(r)
-  }, [tag, search])
+  }, [tag, topic, search])
 
   useEffect(() => {
     load().catch(console.error)
@@ -52,7 +53,7 @@ export default function Library() {
   }
 
   function openNew(type) {
-    setEditor({ type, mode: 'new', kind: type === 'note' ? 'text' : 'link', tag: 'personal', title: '', content: '', url: '' })
+    setEditor({ type, mode: 'new', kind: type === 'note' ? 'text' : 'link', tag: 'personal', topic: 'generale', title: '', content: '', url: '' })
   }
 
   function openItem(item, type) {
@@ -62,6 +63,7 @@ export default function Library() {
       id: item.id,
       kind: item.kind ?? (type === 'note' ? 'text' : 'link'),
       tag: item.tag ?? 'personal',
+      topic: item.topic ?? 'generale',
       title: item.title,
       content: item.content ?? '',
       url: item.url ?? '',
@@ -75,6 +77,7 @@ export default function Library() {
       title: editor.title.trim() || 'Senza titolo',
       content: editor.content,
       tag: editor.tag,
+      topic: editor.topic,
       kind: editor.kind,
       url: editor.url,
     }
@@ -117,8 +120,13 @@ export default function Library() {
       </div>
 
       <div className="tag-filter">
-        {['all', 'personal', 'work'].map((t) => (
+        {['all', 'personal', 'work', 'uni'].map((t) => (
           <button key={t} type="button" className={tag === t ? 'active' : ''} onClick={() => setTag(t)}>{t}</button>
+        ))}
+      </div>
+      <div className="tag-filter">
+        {['all', 'idee', 'libri', 'uni', 'lavoro', 'streaming', 'salute', 'generale'].map((t) => (
+          <button key={t} type="button" className={topic === t ? 'active' : ''} onClick={() => setTopic(t)}>{t}</button>
         ))}
       </div>
 
@@ -127,8 +135,7 @@ export default function Library() {
           <button key={item.id} type="button" className="kb-card" onClick={() => openItem(item, tab === 'notes' ? 'note' : 'resource')}>
             <div className="kb-card-top">
               <strong>{item.title}</strong>
-              <span className="tag">{item.tag}</span>
-              <span className="tag">{item.kind}</span>
+              <span className="tag">{item.topic || item.tag}</span>
             </div>
             <p className="kb-preview">{item.content || item.url || '—'}</p>
           </button>
@@ -147,7 +154,9 @@ export default function Library() {
             <select value={editor.tag} onChange={(e) => setEditor({ ...editor, tag: e.target.value })}>
               <option value="personal">personal</option>
               <option value="work">work</option>
+              <option value="uni">uni</option>
             </select>
+            <input value={editor.topic} onChange={(e) => setEditor({ ...editor, topic: e.target.value })} placeholder="Argomento (idee, libri, uni...)" />
             {editor.type === 'resource' && (
               <input value={editor.url} onChange={(e) => setEditor({ ...editor, url: e.target.value })} placeholder="URL" />
             )}

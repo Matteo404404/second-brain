@@ -5,6 +5,7 @@ import TasksPanel from './components/TasksPanel.jsx'
 import CalendarView from './components/CalendarView.jsx'
 import InboxCapture from './components/InboxCapture.jsx'
 import Library from './components/Library.jsx'
+import HabitManager from './components/HabitManager.jsx'
 import RemindersPanel from './components/RemindersPanel.jsx'
 import ArchivePanel from './components/ArchivePanel.jsx'
 
@@ -34,6 +35,7 @@ export default function App() {
           <InboxCapture />
           <Library />
           <RemindersPanel />
+          <HabitManager />
           <ArchivePanel />
         </main>
       </div>

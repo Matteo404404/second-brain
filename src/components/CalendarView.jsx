@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabaseClient.js'
-import { fetchHabitTemplates, listTasks, todayISO } from '../lib/db.js'
+import { listTasks, todayISO } from '../lib/db.js'
 import { downloadIcs } from '../lib/ics.js'
-import { monthHistory, trainingLossOn } from '../lib/habits.js'
+import { monthHistory } from '../lib/habits.js'
 import { getSelectedDay, onSelectedDay, setSelectedDay } from '../lib/selectedDay.js'
 import { onRefresh } from '../lib/events.js'
 
@@ -28,8 +28,6 @@ export default function CalendarView() {
   const [selected, setSelected] = useState(getSelectedDay())
   const [history, setHistory] = useState({})
   const [tasks, setTasks] = useState([])
-  const [templates, setTemplates] = useState([])
-  const [allLogs, setAllLogs] = useState([])
 
   const year = cursor.getFullYear()
   const month = cursor.getMonth()
@@ -37,12 +35,8 @@ export default function CalendarView() {
 
   const load = useCallback(async () => {
     try {
-      const hist = await monthHistory(supabase, year, month)
-      setHistory(hist)
+      setHistory(await monthHistory(supabase, year, month))
       setTasks(await listTasks({ done: false }))
-      setTemplates(await fetchHabitTemplates())
-      const { data } = await supabase.from('habit_logs').select('*')
-      setAllLogs(data ?? [])
     } catch (err) {
       console.error('CalendarView:', err.message)
     }
@@ -68,10 +62,10 @@ export default function CalendarView() {
         <h2>Calendario</h2>
         <button type="button" className="btn-ghost" onClick={() => downloadIcs(tasks)}>ICS</button>
       </div>
-      <p className="section-desc">Clicca un giorno → i check sopra cambiano.</p>
+      <p className="section-desc">Clicca un giorno → check sopra.</p>
 
       <div className="tabs">
-        <button type="button" className={tab === 'history' ? 'active' : ''} onClick={() => setTab('history')}>Storico</button>
+        <button type="button" className={tab === 'history' ? 'active' : ''} onClick={() => setTab('history')}>Storico %</button>
         <button type="button" className={tab === 'agenda' ? 'active' : ''} onClick={() => setTab('agenda')}>Task</button>
       </div>
 
@@ -81,17 +75,7 @@ export default function CalendarView() {
         <button type="button" className="btn-ghost" onClick={() => setCursor(new Date(year, month + 1, 1))}>›</button>
       </div>
 
-      <button
-        type="button"
-        className="btn-ghost btn-today"
-        onClick={() => {
-          const n = new Date()
-          setCursor(n)
-          pickDay(todayISO(n))
-        }}
-      >
-        Oggi
-      </button>
+      <button type="button" className="btn-ghost btn-today" onClick={() => { const n = new Date(); setCursor(n); pickDay(todayISO(n)) }}>Oggi</button>
 
       <div className="cal-weekdays">{WEEKDAYS.map((d) => <span key={d}>{d}</span>)}</div>
       <div className="cal-grid-pro">
@@ -101,18 +85,16 @@ export default function CalendarView() {
           const h = history[iso]
           const pct = h?.total ? Math.round((h.done / h.total) * 100) : null
           const taskCount = tasks.filter((t) => t.due_date === iso).length
-          const loss = trainingLossOn(iso, templates, allLogs)
           return (
             <button
               key={iso}
               type="button"
-              className={`cal-cell ${iso === todayISO() ? 'today' : ''} ${iso === selected ? 'selected' : ''} ${loss ? 'loss-day' : ''}`}
+              className={`cal-cell ${iso === todayISO() ? 'today' : ''} ${iso === selected ? 'selected' : ''}`}
               onClick={() => pickDay(iso)}
             >
               <span className="cal-num">{day.getDate()}</span>
               {tab === 'history' && pct !== null && <span className={`heat heat-${Math.floor(pct / 25)}`}>{pct}%</span>}
               {tab === 'agenda' && taskCount > 0 && <span className="cal-dots">{'•'.repeat(Math.min(taskCount, 3))}</span>}
-              {loss && <span className="loss-dot">!</span>}
             </button>
           )
         })}
