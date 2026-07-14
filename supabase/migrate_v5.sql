@@ -4,6 +4,7 @@
 alter table habit_templates add column if not exists allow_multi boolean default false;
 alter table notes add column if not exists kind text default 'text';
 alter table notes add column if not exists topic text;
+alter table resources add column if not exists kind text default 'link';
 alter table resources add column if not exists topic text;
 alter table habit_logs drop constraint if exists habit_logs_template_id_log_date_key;
 alter table habit_logs drop constraint if exists check_logs_template_id_log_date_key;

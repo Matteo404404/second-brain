@@ -3,6 +3,7 @@
 alter table habit_templates add column if not exists allow_multi boolean default false;
 alter table notes add column if not exists kind text default 'text';
 alter table notes add column if not exists topic text;
+alter table resources add column if not exists kind text default 'link';
 alter table resources add column if not exists topic text;
 
 -- ponytail: allow multiple logs same habit same day (es. breathing x7)
